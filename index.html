@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>منصة تسجيل بيانات الطلاب</title>
+  <style>
+    * { box-sizing: border-box; font-family: Tahoma, Arial, sans-serif; }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f3f4f8;
+      color: #1f2937;
+    }
+    .wrapper {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      margin-bottom: 24px;
+    }
+    .field {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+    label span {
+      color: #dc2626;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      font-size: 15px;
+      background: #fff;
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: #4338ca;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    .btn-secondary {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      background: #f9fafb;
+      color: #374151;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    h2 {
+      margin: 0 0 6px;
+      font-size: 22px;
+    }
+    .note {
+      margin: 0 0 16px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+    .table-wrap {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 10px;
+      text-align: right;
+    }
+    th {
+      background: #f8fafc;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <form id="studentForm">
+        <div class="field">
+          <label for="fullName">الاسم الكامل <span>*</span></label>
+          <input id="fullName" type="text" placeholder="مثال: أحمد محمود عبد الرحمن" required />
+        </div>
+
+        <div class="field">
+          <label for="studentId">الرقم الجامعي <span>*</span></label>
+          <input id="studentId" type="text" placeholder="مثال: 20261045" required />
+        </div>
+
+        <div class="field">
+          <label for="phone">رقم الهاتف <span>*</span></label>
+          <input id="phone" type="tel" placeholder="مثال: 01012345678" required />
+        </div>
+
+        <div class="field">
+          <label for="nationalOrEmail">الرقم القومي أو البريد الإلكتروني <span>*</span></label>
+          <input id="nationalOrEmail" type="text" placeholder="مثال: 30405120101234 أو student@uni.edu.eg" required />
+        </div>
+
+        <div class="field">
+          <label for="department">القسم / الكلية <span>*</span></label>
+          <select id="department" required>
+            <option value="">اختر القسم أو الكلية...</option>
+            <option value="نظم المعلومات">نظم المعلومات</option>
+            <option value="علوم الحاسب">علوم الحاسب</option>
+            <option value="إدارة الأعمال">إدارة الأعمال</option>
+            <option value="المحاسبة">المحاسبة</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="level">الفرقة / المستوى الدراسي <span>*</span></label>
+          <select id="level" required>
+            <option value="">اختر الفرقة / المستوى...</option>
+            <option value="الفرقة الأولى">الفرقة الأولى</option>
+            <option value="الفرقة الثانية">الفرقة الثانية</option>
+            <option value="الفرقة الثالثة">الفرقة الثالثة</option>
+            <option value="الفرقة الرابعة">الفرقة الرابعة</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-primary">+ إضافة الطالب إلى السجل</button>
+        <button type="reset" class="btn-secondary">تفريغ الحقول</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>سجل الطلاب المقيدين</h2>
+      <p class="note">يتم تحديث الجدول وحفظ التغييرات تلقائياً في متصفحك.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>الاسم الكامل</th>
+              <th>الرقم الجامعي</th>
+              <th>رقم الهاتف</th>
+              <th>الرقم القومي / البريد</th>
+              <th>القسم / الكلية</th>
+              <th>الفرقة / المستوى</th>
+            </tr>
+          </thead>
+          <tbody id="recordsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "registered_students_v1";
+    const form = document.getElementById("studentForm");
+    const recordsBody = document.getElementById("recordsBody");
+
+    function getStudents() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function renderStudents() {
+      const students = getStudents();
+      recordsBody.innerHTML = students.map((s) => `
+        <tr>
+          <td>${s.fullName}</td>
+          <td>${s.studentId}</td>
+          <td>${s.phone}</td>
+          <td>${s.nationalOrEmail}</td>
+          <td>${s.department}</td>
+          <td>${s.level}</td>
+        </tr>
+      `).join("");
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const entry = {
+        fullName: document.getElementById("fullName").value.trim(),
+        studentId: document.getElementById("studentId").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        nationalOrEmail: document.getElementById("nationalOrEmail").value.trim(),
+        department: document.getElementById("department").value,
+        level: document.getElementById("level").value
+      };
+      const students = getStudents();
+      students.push(entry);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
+      renderStudents();
+      form.reset();
+    });
+
+    renderStudents();
+  </script>
+</body>
+</html>
