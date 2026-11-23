@@ -33,14 +33,13 @@
 <body>
   <div class="wrapper">
 
-    <!-- صفحة الدخول -->
     <div id="loginView">
       <div class="card">
         <h2>دخول الطالب</h2>
         <p class="note">اكتب بياناتك بشكل صحيح للدخول إلى الصفحة الرئيسية.</p>
         <div id="statusBox" class="status-box"></div>
 
-        <form id="studentForm" novalidate>
+        <form id="studentForm" novalidate onsubmit="return false;">
           <div class="field">
             <label for="fullName">الاسم الكامل <span>*</span></label>
             <input id="fullName" type="text" placeholder="مثال: أحمد محمود عبد الرحمن" />
@@ -84,13 +83,12 @@
             <div id="err-level" class="error-msg"></div>
           </div>
 
-          <button type="submit" class="btn-primary">دخول</button>
-          <button type="reset" id="resetBtn" class="btn-secondary">تفريغ الحقول</button>
+          <button type="button" id="submitBtn" class="btn-primary">دخول</button>
+          <button type="button" id="resetBtn" class="btn-secondary">تفريغ الحقول</button>
         </form>
       </div>
     </div>
 
-    <!-- الصفحة الرئيسية (بعد الدخول) -->
     <div id="homeView" class="hidden">
       <div class="home-header">
         <h1 id="homeName"></h1>
@@ -104,19 +102,26 @@
         <div class="info-row"><b>القسم / الكلية</b><span id="hDept"></span></div>
         <div class="info-row"><b>الفرقة / المستوى</b><span id="hLevel"></span></div>
       </div>
-      <button class="btn-secondary" id="logoutBtn">تسجيل الخروج</button>
+      <button type="button" class="btn-secondary" id="logoutBtn">تسجيل الخروج</button>
     </div>
 
   </div>
 
   <script>
-    const form = document.getElementById("studentForm");
-    const statusBox = document.getElementById("statusBox");
-    const fields = ["fullName", "studentId", "phone", "nationalOrEmail", "department", "level"];
-    const SESSION_KEY = "student_session_v1";
+    var fields = ["fullName", "studentId", "phone", "nationalOrEmail", "department", "level"];
+    var SESSION_KEY = "student_session_v2";
+    var statusBox = document.getElementById("statusBox");
+
+    // تحويل الأرقام العربي إلى إنجليزي
+    function norm(s) {
+      return s
+        .replace(/[\u0660-\u0669]/g, function (d) { return String(d.charCodeAt(0) - 0x0660); })
+        .replace(/[\u06F0-\u06F9]/g, function (d) { return String(d.charCodeAt(0) - 0x06F0); });
+    }
+    function val(id) { return norm(document.getElementById(id).value.trim()); }
 
     function clearErrors() {
-      fields.forEach((id) => {
+      fields.forEach(function (id) {
         document.getElementById(id).classList.remove("input-error");
         document.getElementById("err-" + id).textContent = "";
       });
@@ -130,10 +135,76 @@
 
     function validateForm() {
       clearErrors();
-      let ok = true;
-      const v = (id) => document.getElementById(id).value.trim();
+      var ok = true;
 
-      const fullName = v("fullName");
-      const parts = fullName.split(/\s+/).filter(Boolean);
+      var fullName = val("fullName");
+      var parts = fullName.split(/\s+/).filter(Boolean);
       if (!fullName) { setFieldError("fullName", "غلط: لم تكتب الاسم الكامل."); ok = false; }
-      els
+      else if (parts.length < 2 || /\d/.test(fullName)) { setFieldError("fullName", "غلط: اكتب الاسم ثنائي أو ثلاثي بحروف فقط بدون أرقام."); ok = false; }
+
+      var studentId = val("studentId");
+      if (!studentId) { setFieldError("studentId", "غلط: لم تكتب الرقم الجامعي."); ok = false; }
+      else if (!/^\d{6,12}$/.test(studentId)) { setFieldError("studentId", "غلط: الرقم الجامعي أرقام فقط (من 6 إلى 12 رقماً)."); ok = false; }
+
+      var phone = val("phone");
+      if (!phone) { setFieldError("phone", "غلط: لم تكتب رقم الهاتف."); ok = false; }
+      else if (!/^01[0125]\d{8}$/.test(phone)) { setFieldError("phone", "غلط: رقم الهاتف لازم يكون 11 رقماً ويبدأ بـ 010 أو 011 أو 012 أو 015."); ok = false; }
+
+      var ne = val("nationalOrEmail");
+      var isNat = /^\d{14}$/.test(ne);
+      var isMail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(ne);
+      if (!ne) { setFieldError("nationalOrEmail", "غلط: لم تكتب الرقم القومي أو البريد."); ok = false; }
+      else if (!isNat && !isMail) { setFieldError("nationalOrEmail", "غلط: اكتب رقماً قومياً من 14 رقماً أو بريداً صحيحاً مثل name@domain.com."); ok = false; }
+
+      if (!val("department")) { setFieldError("department", "غلط: اختر القسم أو الكلية."); ok = false; }
+      if (!val("level")) { setFieldError("level", "غلط: اختر الفرقة أو المستوى."); ok = false; }
+      return ok;
+    }
+
+    function showHome(s) {
+      document.getElementById("homeName").textContent = "أهلاً " + s.fullName;
+      document.getElementById("hId").textContent = s.studentId;
+      document.getElementById("hPhone").textContent = s.phone;
+      document.getElementById("hNat").textContent = s.nationalOrEmail;
+      document.getElementById("hDept").textContent = s.department;
+      document.getElementById("hLevel").textContent = s.level;
+      document.getElementById("loginView").classList.add("hidden");
+      document.getElementById("homeView").classList.remove("hidden");
+      window.scrollTo(0, 0);
+    }
+
+    function submitForm() {
+      if (!validateForm()) {
+        statusBox.className = "status-box status-error";
+        statusBox.textContent = "البيانات غلط، راجع الرسائل الحمراء تحت كل خانة. لا يمكن الدخول قبل تصحيحها.";
+        var firstErr = document.querySelector(".input-error");
+        if (firstErr) firstErr.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      var s = {};
+      fields.forEach(function (id) { s[id] = val(id); });
+      try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(s)); } catch (e) {}
+      document.getElementById("studentForm").reset();
+      showHome(s);
+    }
+
+    document.getElementById("submitBtn").addEventListener("click", submitForm);
+
+    document.getElementById("resetBtn").addEventListener("click", function () {
+      document.getElementById("studentForm").reset();
+      clearErrors();
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", function () {
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (e) {}
+      document.getElementById("homeView").classList.add("hidden");
+      document.getElementById("loginView").classList.remove("hidden");
+    });
+
+    try {
+      var saved = JSON.parse(sessionStorage.getItem(SESSION_KEY));
+      if (saved) showHome(saved);
+    } catch (e) {}
+  </script>
+</body>
+</html>
