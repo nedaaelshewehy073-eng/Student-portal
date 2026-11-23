@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>منصة تسجيل الطلاب</title>
+  <style>
+    * { box-sizing: border-box; font-family: Tahoma, Arial, sans-serif; }
+    body { margin: 0; background: #f3f6fb; color: #1f2937; }
+    header { background: #198754; color: #fff; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; }
+    header h2 { margin: 0; font-size: 18px; }
+    .container { max-width: 720px; margin: 28px auto; background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 18px rgba(0,0,0,0.08); }
+    h1 { margin-top: 0; color: #198754; font-size: 22px; text-align: center; }
+    .grid { display: grid; gap: 12px; }
+    input, select, button { width: 100%; padding: 11px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 14px; }
+    button { background: #198754; color: #fff; border: none; cursor: pointer; font-weight: bold; }
+    button:hover { background: #146c43; }
+    .btn-sec { background: #0d6efd; margin-top: 8px; }
+    .btn-del { background: #dc2626; padding: 6px 10px; font-size: 12px; width: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+    th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: right; font-size: 14px; }
+    th { background: #e9f7ef; color: #146c43; }
+    .hidden { display: none; }
+    .msg { text-align: center; color: #198754; font-weight: bold; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h2>منصة الطلاب الإلكترونية</h2>
+    <span id="userBadge"></span>
+  </header>
+
+  <!-- شاشة تسجيل الدخول -->
+  <div class="container" id="loginBox">
+    <h1>تسجيل الدخول للمنصة</h1>
+    <form id="loginForm" class="grid">
+      <input type="text" id="loginId" placeholder="رقم الطالب (مثال: 202520042)" required />
+      <input type="password" id="loginPass" placeholder="كلمة المرور" required />
+      <button type="submit">Log in / دخول</button>
+    </form>
+  </div>
+
+  <!-- لوحة تسجيل بيانات الطلاب -->
+  <div class="container hidden" id="portalBox">
+    <h1>تسجيل بيانات الطلاب</h1>
+    <form id="studentForm" class="grid">
+      <input type="text" id="studentName" placeholder="اسم الطالب بالكامل" required />
+      <input type="text" id="studentCode" placeholder="رقم الطالب" required />
+      <input type="text" id="department" placeholder="الكلية / القسم" required />
+      <select id="level" required>
+        <option value="">اختر المستوى</option>
+        <option value="المستوى الأول">المستوى الأول</option>
+        <option value="المستوى الثاني">المستوى الثاني</option>
+        <option value="المستوى الثالث">المستوى الثالث</option>
+        <option value="المستوى الرابع">المستوى الرابع</option>
+      </select>
+      <button type="submit">حفظ وتسجيل البيانات</button>
+    </form>
+    <p class="msg" id="statusMsg"></p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>الاسم</th>
+          <th>الرقم</th>
+          <th>الكلية / القسم</th>
+          <th>المستوى</th>
+          <th>حذف</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const loginBox = document.getElementById("loginBox");
+    const portalBox = document.getElementById("portalBox");
+    const loginForm = document.getElementById("loginForm");
+    const studentForm = document.getElementById("studentForm");
+    const tableBody = document.getElementById("tableBody");
+    const statusMsg = document.getElementById("statusMsg");
+    let students = JSON.parse(localStorage.getItem("students_portal") || "[]");
+
+    loginForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const id = document.getElementById("loginId").value.trim();
+      document.getElementById("userBadge").textContent = "طالب: " + id;
+      document.getElementById("studentCode").value = id;
+      loginBox.classList.add("hidden");
+      portalBox.classList.remove("hidden");
+      render();
+    });
+
+    studentForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      students.push({
+        name: document.getElementById("studentName").value.trim(),
+        id: document.getElementById("studentCode").value.trim(),
+        dept: document.getElementById("department").value.trim(),
+        level: document.getElementById("level").value
+      });
+      localStorage.setItem("students_portal", JSON.stringify(students));
+      studentForm.reset();
+      statusMsg.textContent = "تم تسجيل بياناتك بنجاح!";
+      render();
+    });
+
+    function removeRow(i) {
+      students.splice(i, 1);
+      localStorage.setItem("students_portal", JSON.stringify(students));
+      render();
+    }
+
+    function render() {
+      tableBody.innerHTML = students.map((s, i) => `
+        <tr>
+          <td>${s.name}</td>
+          <td>${s.id}</td>
+          <td>${s.dept}</td>
+          <td>${s.level}</td>
+          <td><button class="btn-del" onclick="removeRow(${i})">حذف</button></td>
+        </tr>
+      `).join("");
+    }
+  </script>
+</body>
+</html>
