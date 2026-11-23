@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>منصة تسجيل بيانات الطلاب</title>
+  <title>منصة تسجيل والتحقق من بيانات الطلاب</title>
   <style>
     * { box-sizing: border-box; font-family: Tahoma, Arial, sans-serif; }
     body {
@@ -42,6 +42,36 @@
       border-radius: 10px;
       font-size: 15px;
       background: #fff;
+    }
+    .input-error {
+      border-color: #dc2626 !important;
+      background: #fef2f2 !important;
+    }
+    .error-msg {
+      color: #dc2626;
+      font-size: 13px;
+      margin-top: 6px;
+      min-height: 18px;
+    }
+    .status-box {
+      display: none;
+      padding: 14px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .status-success {
+      display: block;
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #10b981;
+    }
+    .status-error {
+      display: block;
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #ef4444;
     }
     .btn-primary {
       width: 100%;
@@ -95,51 +125,59 @@
 <body>
   <div class="wrapper">
     <div class="card">
-      <form id="studentForm">
+      <div id="statusBox" class="status-box"></div>
+
+      <form id="studentForm" novalidate>
         <div class="field">
           <label for="fullName">الاسم الكامل <span>*</span></label>
-          <input id="fullName" type="text" placeholder="مثال: أحمد محمود عبد الرحمن" required />
+          <input id="fullName" type="text" placeholder="مثال: أحمد محمود عبد الرحمن" />
+          <div id="err-fullName" class="error-msg"></div>
         </div>
 
         <div class="field">
           <label for="studentId">الرقم الجامعي <span>*</span></label>
-          <input id="studentId" type="text" placeholder="مثال: 20261045" required />
+          <input id="studentId" type="text" placeholder="مثال: 20261045" />
+          <div id="err-studentId" class="error-msg"></div>
         </div>
 
         <div class="field">
           <label for="phone">رقم الهاتف <span>*</span></label>
-          <input id="phone" type="tel" placeholder="مثال: 01012345678" required />
+          <input id="phone" type="tel" placeholder="مثال: 01012345678" />
+          <div id="err-phone" class="error-msg"></div>
         </div>
 
         <div class="field">
           <label for="nationalOrEmail">الرقم القومي أو البريد الإلكتروني <span>*</span></label>
-          <input id="nationalOrEmail" type="text" placeholder="مثال: 30405120101234 أو student@uni.edu.eg" required />
+          <input id="nationalOrEmail" type="text" placeholder="رقم قومي 14 رقم أو بريد إلكتروني صحيح" />
+          <div id="err-nationalOrEmail" class="error-msg"></div>
         </div>
 
         <div class="field">
           <label for="department">القسم / الكلية <span>*</span></label>
-          <select id="department" required>
+          <select id="department">
             <option value="">اختر القسم أو الكلية...</option>
             <option value="نظم المعلومات">نظم المعلومات</option>
             <option value="علوم الحاسب">علوم الحاسب</option>
             <option value="إدارة الأعمال">إدارة الأعمال</option>
             <option value="المحاسبة">المحاسبة</option>
           </select>
+          <div id="err-department" class="error-msg"></div>
         </div>
 
         <div class="field">
           <label for="level">الفرقة / المستوى الدراسي <span>*</span></label>
-          <select id="level" required>
+          <select id="level">
             <option value="">اختر الفرقة / المستوى...</option>
             <option value="الفرقة الأولى">الفرقة الأولى</option>
             <option value="الفرقة الثانية">الفرقة الثانية</option>
             <option value="الفرقة الثالثة">الفرقة الثالثة</option>
             <option value="الفرقة الرابعة">الفرقة الرابعة</option>
           </select>
+          <div id="err-level" class="error-msg"></div>
         </div>
 
-        <button type="submit" class="btn-primary">+ إضافة الطالب إلى السجل</button>
-        <button type="reset" class="btn-secondary">تفريغ الحقول</button>
+        <button type="submit" class="btn-primary">تحقق ودخول / إضافة للسجل</button>
+        <button type="reset" id="resetBtn" class="btn-secondary">تفريغ الحقول</button>
       </form>
     </div>
 
@@ -168,6 +206,83 @@
     const STORAGE_KEY = "registered_students_v1";
     const form = document.getElementById("studentForm");
     const recordsBody = document.getElementById("recordsBody");
+    const statusBox = document.getElementById("statusBox");
+    const resetBtn = document.getElementById("resetBtn");
+
+    const fields = ["fullName", "studentId", "phone", "nationalOrEmail", "department", "level"];
+
+    function clearErrors() {
+      fields.forEach((id) => {
+        document.getElementById(id).classList.remove("input-error");
+        document.getElementById("err-" + id).textContent = "";
+      });
+      statusBox.className = "status-box";
+      statusBox.textContent = "";
+    }
+
+    function setFieldError(id, message) {
+      document.getElementById(id).classList.add("input-error");
+      document.getElementById("err-" + id).textContent = message;
+    }
+
+    function validateForm() {
+      clearErrors();
+      let isValid = true;
+
+      const fullName = document.getElementById("fullName").value.trim();
+      const studentId = document.getElementById("studentId").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const nationalOrEmail = document.getElementById("nationalOrEmail").value.trim();
+      const department = document.getElementById("department").value;
+      const level = document.getElementById("level").value;
+
+      const nameParts = fullName.split(/\s+/).filter(Boolean);
+      if (!fullName) {
+        setFieldError("fullName", "الغلط هنا: لم تكتب الاسم الكامل.");
+        isValid = false;
+      } else if (nameParts.length < 2 || /\d/.test(fullName)) {
+        setFieldError("fullName", "الغلط هنا: اكتب الاسم الثنائي أو الثلاثي بحروف فقط بدون أرقام.");
+        isValid = false;
+      }
+
+      if (!studentId) {
+        setFieldError("studentId", "الغلط هنا: لم تكتب الرقم الجامعي.");
+        isValid = false;
+      } else if (!/^\d{6,12}$/.test(studentId)) {
+        setFieldError("studentId", "الغلط هنا: الرقم الجامعي يجب أن يكون أرقاماً فقط (من 6 إلى 12 رقماً).");
+        isValid = false;
+      }
+
+      if (!phone) {
+        setFieldError("phone", "الغلط هنا: لم تكتب رقم الهاتف.");
+        isValid = false;
+      } else if (!/^01[0125]\d{8}$/.test(phone)) {
+        setFieldError("phone", "الغلط هنا: رقم الهاتف غير صحيح، يجب أن يكون 11 رقماً ويبدأ بـ 010 أو 011 أو 012 أو 015.");
+        isValid = false;
+      }
+
+      const isNationalId = /^\d{14}$/.test(nationalOrEmail);
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(nationalOrEmail);
+      if (!nationalOrEmail) {
+        setFieldError("nationalOrEmail", "الغلط هنا: لم تكتب الرقم القومي أو البريد الإلكتروني.");
+        isValid = false;
+      } else if (!isNationalId && !isEmail) {
+        setFieldError("nationalOrEmail", "الغلط هنا: اكتب رقماً قومياً من 14 رقماً أو بريداً إلكترونياً صحيحاً مثل name@domain.com.");
+        isValid = false;
+      }
+
+      if (!department) {
+        setFieldError("department", "الغلط هنا: اختر القسم أو الكلية من القائمة.");
+        isValid = false;
+      }
+
+      if (!level) {
+        setFieldError("level", "الغلط هنا: اختر الفرقة أو المستوى الدراسي من القائمة.");
+        isValid = false;
+      }
+
+      return isValid;
+    }
 
     function getStudents() {
       try {
@@ -193,6 +308,15 @@
 
     form.addEventListener("submit", (e) => {
       e.preventDefault();
+
+      if (!validateForm()) {
+        statusBox.className = "status-box status-error";
+        statusBox.textContent = "يوجد خطأ في بعض البيانات، راجع الرسائل الحمراء أسفل كل خانة لتعرف الغلط فين.";
+        const firstErr = document.querySelector(".input-error");
+        if (firstErr) firstErr.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+
       const entry = {
         fullName: document.getElementById("fullName").value.trim(),
         studentId: document.getElementById("studentId").value.trim(),
@@ -201,11 +325,19 @@
         department: document.getElementById("department").value,
         level: document.getElementById("level").value
       };
+
       const students = getStudents();
       students.push(entry);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
       renderStudents();
       form.reset();
+
+      statusBox.className = "status-box status-success";
+      statusBox.textContent = `تم التحقق بنجاح! أهلاً بك يا ${entry.fullName}، تم تسجيل بياناتك ودخولك بنجاح.`;
+    });
+
+    resetBtn.addEventListener("click", () => {
+      setTimeout(clearErrors, 0);
     });
 
     renderStudents();
